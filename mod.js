@@ -6,7 +6,11 @@ let o_text_encoder = new TextEncoder();
 let o_text_decoder = new TextDecoder();
 let s_name_binary = 'node';
 
-let s_comment_to_replace_by_nothing = `//this_comment_will_get_removed_when_run_in_node`;
+
+let f_s_function_body = function(f){
+    let s_f_body = f.toString().split('\n').slice(1,-1).join('\n');
+    return s_f_body;
+}
 
 let f_s_version_node = async function(){
     let s_command = `${s_name_binary} --version`;
@@ -38,21 +42,17 @@ try {
     console.log(`windows:sorry bill :(, so gates nid!`) 
 }
 let f_o_output_from_node_command = async function(
-    f_nodejs, 
-    b_input_type_module = false
+    s_function_body, 
+    a_v_arg = []
 ){
-    let s_f_node = f_nodejs.toString().split('\n').slice(1,-1).join('\n').replaceAll(
-        s_comment_to_replace_by_nothing, 
-        ''
-    )
+
     // console.log(s_f_node)
+    // console.log(a_v_arg)
     let s_command = s_name_binary
     const o_command = new Deno.Command(
         s_command,
         {
-            args: [
-                (b_input_type_module) ? '--input-type=module': ''
-            ].filter(s=>s!=''),
+            args: a_v_arg,
             stdin: "piped",
             stdout: "piped",
             stderr: 'piped'
@@ -61,7 +61,7 @@ let f_o_output_from_node_command = async function(
     const o_proc_child = o_command.spawn();
     let o_writer = await (o_proc_child.stdin.getWriter())
 
-    await o_writer.write(o_text_encoder.encode(s_f_node))
+    await o_writer.write(o_text_encoder.encode(s_function_body))
     await o_writer.close();
 
     const { code: n_return_code, stdout: a_n_u8__stdout, stderr: a_n_u8__stderr } = await o_proc_child.output();
@@ -74,12 +74,16 @@ let f_o_output_from_node_command = async function(
 }
 
 let f_a_n_u8__stdout__from_node_command = async function(
-    f_nodejs, 
-    b_input_type_module = false
+    s_function_body, 
+    a_v_arg = []
 ){
 
-    let o = await f_o_output_from_node_command(f_nodejs, b_input_type_module);
+    let o = await f_o_output_from_node_command(s_function_body, a_v_arg);
+    
     if(o.n_return_code != 0 || o.a_n_u8__stderr.length > 0){
+        let s_error = `n_return_code is ${o.n_return_code} from command '${o.s_command}', stderr: '${o_text_decoder.decode(o.a_n_u8__stderr)}'`
+
+        console.error(s_error)
         let s_stderr = o_text_decoder.decode(o.a_n_u8__stderr);
         let s_name_module = null;
         let s_start = `Error: Cannot find module`;
@@ -95,9 +99,7 @@ let f_a_n_u8__stdout__from_node_command = async function(
                 return false
             });
 
-            console.log(s_name_module)
-            console.log(s_name_module)
-            console.log(s_name_module)
+            // console.log(s_name_module)
             let s_expected = `yes`;
             let s_command_install = `npm install ${s_name_module}`; 
             let s_prompt_result = prompt(`it seems the nodejs module ${s_name_module} is not installed, 
@@ -119,22 +121,26 @@ let f_a_n_u8__stdout__from_node_command = async function(
                 console.log(o_command)
             }
         }
-        throw Error(`n_return_code is ${o.n_return_code} from command '${o.s_command}', stderr: '${o_text_decoder.decode(o.a_n_u8__stderr)}'`)
+        throw Error(s_error)
     }
     return o.a_n_u8__stdout;
 }
 let f_s_from_node_command = async function(
-    f_nodejs, 
-    b_input_type_module = false
+    s_function_body, 
+    a_v_arg = []
 ){
 
-    let a_n_u8__stdout = await f_a_n_u8__stdout__from_node_command(f_nodejs,b_input_type_module);
+    let a_n_u8__stdout = await f_a_n_u8__stdout__from_node_command(
+        s_function_body,
+        a_v_arg
+    );
     return o_text_decoder.decode(a_n_u8__stdout)
 }
 
 
 
 export {
+    f_s_function_body,
     f_s_version_node, 
     f_o_output_from_node_command,
     f_a_n_u8__stdout__from_node_command,
